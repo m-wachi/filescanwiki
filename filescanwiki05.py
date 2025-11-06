@@ -16,7 +16,8 @@ SCAN_FILEEXT = [".txt", ".xls", ".xlsx", ".doc", ".docx"]
 #SCANNER_DB_PATH = 'C:\\trac\\mydata02.db'
 #SCANNER_DB_PATH = 'C:\\py_virenv\\test\\testenv1\\trac\\mydata02.db'
 #SCANNER_DB_PATH = 'C:\\py_virenv\\trac1.2env\\trac\\mydata02.db'
-SCANNER_DB_PATH = 'C:\\py_virenv\\trac16env\\trac\\mydata02test.db'
+#SCANNER_DB_PATH = 'C:\\py_virenv\\trac16env\\trac\\mydata02test.db'
+SCANNER_DB_PATH = 'C:\\py_virenv\\trac16env\\trac\\mydata02.db'
 
 TMP_TXT_FOR_WORD = "c:\\tmp\\tmpword.txt"
 
@@ -330,6 +331,7 @@ def registerFile(filepath, tracDb, connScanner, msWordRdr):
 
     try:
         fileext = getFileExtension(filepath)
+        print(f"fileext={fileext}")
         pageData = ""
         # if fileext in [".xls", ".xlsx"]:
         #     pageData = get_excel_contents(filepath)
@@ -340,9 +342,9 @@ def registerFile(filepath, tracDb, connScanner, msWordRdr):
         if fileext == ".txt":
             pageData = get_file_contents(filepath)
 
-        #print "-- start contents --"
-        #print pageData
-        #print "-- end contents --"
+        print("-- start contents --")
+        print(pageData)
+        print("-- end contents --")
         
         # 中身がなければ中断
         if 0 == len(pageData):
@@ -401,7 +403,7 @@ class TracDb:
 
     def __init__(self):
         self.conn = psycopg2.connect(
-            "dbname=trac2 host=localhost user=tracuser password=tracuser")
+            "dbname=trac16 host=localhost user=tracuser password=tracuser")
 
     def register2TracDb(self, pageName, pageData, filepath):
         '''ファイルの内容をTrac DBに登録する
