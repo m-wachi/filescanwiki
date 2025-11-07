@@ -369,20 +369,14 @@ def registerFile(filepath, tracDb, connScanner, msWordRdr):
 # t_scan_statusで処理中のファイルの情報を管理
 #
 
-def initScanStatus(connScanner, baseDir, curDir, curFile):
-    sql = "insert into t_scan_status(base_dir, cur_dir, cur_file) "
-    sql += " values(?, ?, ?) "
-    connScanner.execute(sql, (baseDir, curDir, curFile))
-    connScanner.commit()
-
 def updateScanStatus(connScanner, curDir, curFile):
     sql = "update t_scan_status set cur_dir = ?, cur_file = ? "
     connScanner.execute(sql, (curDir, curFile))
-    connScanner.commit();
+    connScanner.commit()
 
 def clearScanStatus(connScanner):
     sql = "delete from t_scan_status "
-    connScanner.execute(sql);
+    connScanner.execute(sql)
     connScanner.commit()
 
 def getScanStatus(connScanner):
@@ -457,7 +451,13 @@ class ScannerDb:
     def __init__(self):
         self.conn = sqlite3.connect(SCANNER_DB_PATH)
         self.loadSkipfile()
-        
+
+    def initScanStatus(self, baseDir, curDir, curFile):
+        sql = "insert into t_scan_status(base_dir, cur_dir, cur_file) "
+        sql += " values(?, ?, ?) "
+        self.conn.execute(sql, (baseDir, curDir, curFile))
+        self.conn.commit()
+
     def needScan(self, fpath):
         '''ファイルの中身をスキャンする必要があるかチェック
 
@@ -545,6 +545,87 @@ def logerr(txt):
 #         return get_file_contents(TMP_TXT_FOR_WORD)
 
 
+def scanBaseDir(baseDir: str, tracDb: TracDb, scannerDb: ScannerDb):
+    '''Scan data starting with baseDir
+
+    Args:
+        baseDir: base directory path
+        tracDb
+        scannerDb
+    '''
+
+    print('（ベースディレクトリ）base_dir=%s' % baseDir)
+    logstd('（ベースディレクトリ）base_dir=%s' % baseDir)
+
+    connScanner = scannerDb.conn
+
+
+    #
+    # 途中で停止した場合、停止した所か再開するための処理
+    #
+    (baseDir2, curDir, curFile) = getScanStatus(connScanner)
+
+    print("baseDir2=%s, curDir=%s, curFile=%s" % (baseDir2, curDir, curFile))
+
+    if baseDir2 is None:
+        curDir = baseDir
+        curFile = getFirstChild(curDir)
+        scannerDb.initScanStatus(baseDir, curDir, curFile)
+    else:
+        baseDir = baseDir2
+
+
+    waitCnt = 0
+    for i in range(1, 10000):
+
+        #print isinstance(f, unicode)  #print True
+        #print filepath
+
+        # これからスキャンするファイルをDBに記録
+        updateScanStatus(connScanner, curDir, curFile)
+        
+        filepath = os.path.join(curDir, curFile)
+
+        if os.path.isfile(filepath):
+            #拡張子が該当するかチェックし、該当すれば
+            # ファイルの中身を登録し、scannerdb, tracdbに登録
+            fileext = getFileExtension(filepath)
+            if (0 < len(fileext)) and (fileext in SCAN_FILEEXT):
+                if scannerDb.needScan(filepath):
+                    #registerFile(filepath, connTrac, connScanner, msWordRdr)
+                    #registerFile(filepath, tracDb, connScanner, msWordRdr)
+                    registerFile(filepath, tracDb, connScanner, None)
+                else:
+                    logstd(filepath + " is skipped(already scanned).")
+            else:
+                #print(filepath + " is excluded.")
+                logstd(filepath + " is excluded.")
+
+
+        #logstd("curDir=%s, curFile=%s" % (curDir, curFile))
+        (nextDir, nextFile) = getNextEntry(baseDir, curDir, curFile, scannerDb.skipfiles)
+        #logstd("nextDir=%s, nextFile=%s" % (nextDir, nextFile))
+
+        if nextDir is None:
+            break
+
+        #
+        # wait 0.5sec each 10 entries processed.
+        #
+        if waitCnt >= 10:
+            time.sleep(0.5)
+            waitCnt = 0
+            print("wait 0.5sec...")
+        waitCnt += 1
+        
+        curDir = nextDir
+        curFile = nextFile
+
+        if i == 9999:
+            print("loop exausted(9999).")
+            break
+
+
 #############################
 # main routine
 #############################
@@ -561,9 +642,6 @@ baseDir = pathNormalize(sys.argv[1])
 glbLogStdF = open(LOG_STD, 'w')
 glbLogErrF = open(LOG_ERR, 'w')
 
-print('（ベースディレクトリ）base_dir=%s' % baseDir)
-logstd('（ベースディレクトリ）base_dir=%s' % baseDir)
-
 # #Test Routine.
 
 
@@ -577,88 +655,22 @@ logstd('（ベースディレクトリ）base_dir=%s' % baseDir)
 
 # #Test Routine End.
 
+
+
 tracDb = TracDb()
-connTrac = tracDb.conn
 scannerDb = ScannerDb()
-connScanner = scannerDb.conn
-
-#connTrac = sqlite3.connect('C:\\trac\\wachipj\\db\\trac.db')
-
-#
-# 途中で停止した場合、停止した所か再開するための処理
-#
-(baseDir2, curDir, curFile) = getScanStatus(connScanner)
-
-print("baseDir2=%s, curDir=%s, curFile=%s" % (baseDir2, curDir, curFile))
-
-if baseDir2 is None:
-    curDir = baseDir
-    curFile = getFirstChild(curDir)
-    initScanStatus(connScanner, baseDir, curDir, curFile)
-else:
-    baseDir = baseDir2
-
-
-
 
 #msWordRdr = MsWordReader()
 #msWordRdr.startWord()
 
-waitCnt = 0
-for i in range(1, 10000):
-
-    #print isinstance(f, unicode)  #print True
-    #print filepath
-
-    updateScanStatus(connScanner, curDir, curFile)
-    
-    filepath = os.path.join(curDir, curFile)
-
-    if os.path.isfile(filepath):
-        #拡張子が該当するかチェックし、該当すれば
-        # ファイルの中身を登録し、scannerdb, tracdbに登録
-        fileext = getFileExtension(filepath)
-        if (0 < len(fileext)) and (fileext in SCAN_FILEEXT):
-            if scannerDb.needScan(filepath):
-                #registerFile(filepath, connTrac, connScanner, msWordRdr)
-                #registerFile(filepath, tracDb, connScanner, msWordRdr)
-                registerFile(filepath, tracDb, connScanner, None)
-            else:
-                logstd(filepath + " is skipped(already scanned).")
-        else:
-            #print(filepath + " is excluded.")
-            logstd(filepath + " is excluded.")
-
-
-    #logstd("curDir=%s, curFile=%s" % (curDir, curFile))
-    (nextDir, nextFile) = getNextEntry(baseDir, curDir, curFile, scannerDb.skipfiles)
-    #logstd("nextDir=%s, nextFile=%s" % (nextDir, nextFile))
-
-    if nextDir is None:
-        break
-
-    #
-    # wait 0.5sec each 10 entries processed.
-    #
-    if waitCnt >= 10:
-        time.sleep(0.5)
-        waitCnt = 0
-        print("wait 0.5sec...")
-    waitCnt += 1
-    
-    curDir = nextDir
-    curFile = nextFile
-
-    if i == 9999:
-        print("loop exausted(9999).")
-        break
+scanBaseDir(baseDir, tracDb, scannerDb)
 
 #msWordRdr.quitWord()
 
 clearScanStatus(connScanner)
 
-connScanner.close()
-connTrac.close()
+tracDb.conn.close()
+scannerDb.conn.close()
 
 glbLogStdF.close()
 glbLogErrF.close()
