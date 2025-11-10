@@ -16,8 +16,8 @@ SCAN_FILEEXT = [".txt", ".xls", ".xlsx", ".doc", ".docx"]
 #SCANNER_DB_PATH = 'C:\\trac\\mydata02.db'
 #SCANNER_DB_PATH = 'C:\\py_virenv\\test\\testenv1\\trac\\mydata02.db'
 #SCANNER_DB_PATH = 'C:\\py_virenv\\trac1.2env\\trac\\mydata02.db'
-#SCANNER_DB_PATH = 'C:\\py_virenv\\trac16env\\trac\\mydata02test.db'
-SCANNER_DB_PATH = 'C:\\py_virenv\\trac16env\\trac\\mydata02.db'
+SCANNER_DB_PATH = 'C:\\py_virenv\\trac16env\\trac\\mydata02test.db'
+#SCANNER_DB_PATH = 'C:\\py_virenv\\trac16env\\trac\\mydata02.db'
 
 TMP_TXT_FOR_WORD = "c:\\tmp\\tmpword.txt"
 
@@ -374,11 +374,6 @@ def updateScanStatus(connScanner, curDir, curFile):
     connScanner.execute(sql, (curDir, curFile))
     connScanner.commit()
 
-def clearScanStatus(connScanner):
-    sql = "delete from t_scan_status "
-    connScanner.execute(sql)
-    connScanner.commit()
-
 def getScanStatus(connScanner):
     sql = "select base_dir, cur_dir, cur_file "
     sql += " from t_scan_status"
@@ -396,8 +391,10 @@ class TracDb:
     '''
 
     def __init__(self):
+        #self.conn = psycopg2.connect(
+        #    "dbname=trac16 host=localhost user=tracuser password=tracuser")
         self.conn = psycopg2.connect(
-            "dbname=trac16 host=localhost user=tracuser password=tracuser")
+            "dbname=trac14tmp host=localhost user=tracuser password=tracuser")
 
     def register2TracDb(self, pageName, pageData, filepath):
         '''ファイルの内容をTrac DBに登録する
@@ -449,10 +446,17 @@ class ScannerDb:
     SCANNER_DB_PATHにファイルパスの設定をする
     '''
     def __init__(self):
-        self.conn = sqlite3.connect(SCANNER_DB_PATH)
+        self.conn : sqlite3.Connection = sqlite3.connect(SCANNER_DB_PATH)
         self.loadSkipfile()
 
     def initScanStatus(self, baseDir, curDir, curFile):
+        '''ファイルのスキャン状態の初期セット
+
+        Args:
+            baseDir: ベースディレクトリ
+            curDir: これからスキャンするファイルのディレクトリ
+            curFile: これからスキャンするファイル
+		'''
         sql = "insert into t_scan_status(base_dir, cur_dir, cur_file) "
         sql += " values(?, ?, ?) "
         self.conn.execute(sql, (baseDir, curDir, curFile))
@@ -494,6 +498,11 @@ class ScannerDb:
             fpath = pathNormalize(row[0])
             print("skipfiles=%s" % fpath)
             self.skipfiles.append(fpath)
+
+    def clearScanStatus(self):
+        sql = "delete from t_scan_status "
+        self.conn.execute(sql)
+        self.conn.commit()
 
 def logstd(txt):
     #glbLogStdF.write(txt + u'\n')
@@ -667,7 +676,7 @@ scanBaseDir(baseDir, tracDb, scannerDb)
 
 #msWordRdr.quitWord()
 
-clearScanStatus(connScanner)
+scannerDb.clearScanStatus()
 
 tracDb.conn.close()
 scannerDb.conn.close()
