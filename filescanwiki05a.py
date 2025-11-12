@@ -13,11 +13,8 @@ import psycopg2
 
 SCAN_FILEEXT = [".txt", ".xls", ".xlsx", ".doc", ".docx"]
 
-#SCANNER_DB_PATH = 'C:\\trac\\mydata02.db'
-#SCANNER_DB_PATH = 'C:\\py_virenv\\test\\testenv1\\trac\\mydata02.db'
 #SCANNER_DB_PATH = 'C:\\py_virenv\\trac1.2env\\trac\\mydata02.db'
-SCANNER_DB_PATH = 'C:\\py_virenv\\trac16env\\trac\\mydata02test.db'
-#SCANNER_DB_PATH = 'C:\\py_virenv\\trac16env\\trac\\mydata02.db'
+SCANNER_DB_PATH = 'C:\\py_virenv\\trac16env\\trac\\mydata02.db'
 
 TMP_TXT_FOR_WORD = "c:\\tmp\\tmpword.txt"
 
@@ -331,7 +328,7 @@ def registerFile(filepath, tracDb, connScanner, msWordRdr):
 
     try:
         fileext = getFileExtension(filepath)
-        print(f"fileext={fileext}")
+        #print(f"fileext={fileext}")
         pageData = ""
         # if fileext in [".xls", ".xlsx"]:
         #     pageData = get_excel_contents(filepath)
@@ -342,9 +339,9 @@ def registerFile(filepath, tracDb, connScanner, msWordRdr):
         if fileext == ".txt":
             pageData = get_file_contents(filepath)
 
-        print("-- start contents --")
-        print(pageData)
-        print("-- end contents --")
+        #print("-- start contents --")
+        #print(pageData)
+        #print("-- end contents --")
         
         # 中身がなければ中断
         if 0 == len(pageData):
@@ -391,10 +388,8 @@ class TracDb:
     '''
 
     def __init__(self):
-        #self.conn = psycopg2.connect(
-        #    "dbname=trac16 host=localhost user=tracuser password=tracuser")
         self.conn = psycopg2.connect(
-            "dbname=trac14tmp host=localhost user=tracuser password=tracuser")
+            "dbname=trac16 host=localhost user=tracuser password=tracuser")
 
     def register2TracDb(self, pageName, pageData, filepath):
         '''ファイルの内容をTrac DBに登録する
@@ -634,22 +629,66 @@ def scanBaseDir(baseDir: str, tracDb: TracDb, scannerDb: ScannerDb):
             print("loop exausted(9999).")
             break
 
+    scannerDb.clearScanStatus()
+
+
+def scanDirectoryList(file_path: str, tracDb: TracDb, scannerDb: ScannerDb):
+    """
+    指定されたテキストファイルを読み込み、各行をディレクトリパスとして
+    scanBaseDirで処理します。
+
+    Args:
+        file_path (str): ディレクトリ一覧が記述されたテキストファイルのパス。
+    """
+
+    # 'r'モードでファイルを読み取り専用で開きます。
+    # with文を使うことで、処理後にファイルが自動的に閉じられます。
+    with open(file_path, 'r') as f:
+        logstd(f"--- ファイル: {file_path} の読み込みを開始します ---")
+        
+        # ファイルの内容を1行ずつ読み込み、ループ処理します。
+        for line in f:
+            # 行末の改行文字 (\n) や空白文字を削除します。
+            directory_path = pathNormalize(line.strip())
+            
+            # 空行の場合はスキップします。
+            if not directory_path:
+                continue
+            
+            # directory_pathのスキャン実行
+            scanBaseDir(directory_path, tracDb, scannerDb)
+
+        logstd("--- ファイルの読み込みと処理が完了しました ---")
+
+
 
 #############################
 # main routine
 #############################
 if 2 > len(sys.argv):
-    sys.exit("Usage: python filescanwiki04.py (directory path)")
+    sys.exit("Usage: python filescanwiki05a.py (directory path)\n" +
+             "       python filescanwiki05a.py -l (directory-list-file)")
 
-#小文字、大文字の片寄、パスの標準化
-#baseDir = pathNormalize(sys.argv[1].decode('cp932'))
-baseDir = pathNormalize(sys.argv[1])
-
-#baseDir = u'c:\\tmp\\work03'
 
 #ログファイルのハンドラオープン
 glbLogStdF = open(LOG_STD, 'w')
 glbLogErrF = open(LOG_ERR, 'w')
+
+
+filelistPath = None
+baseDir = None
+mode = 0
+
+if sys.argv[1] == '-l':
+    mode = 2    # ファイル一覧使用モード
+    filelistPath = pathNormalize(sys.argv[2])
+else:
+    mode = 1    # 通常モード
+    #小文字、大文字の片寄、パスの標準化
+    baseDir = pathNormalize(sys.argv[1])
+    #baseDir = u'c:\\tmp\\work03'
+
+
 
 # #Test Routine.
 
@@ -671,12 +710,14 @@ scannerDb = ScannerDb()
 
 #msWordRdr = MsWordReader()
 #msWordRdr.startWord()
-
-scanBaseDir(baseDir, tracDb, scannerDb)
-
+if mode == 1:
+    scanBaseDir(baseDir, tracDb, scannerDb)
+else:
+    #filelistPathを読み込んで１行づつscanBaseDirしながらループ
+    scanDirectoryList(filelistPath, tracDb, scannerDb)
+    
 #msWordRdr.quitWord()
 
-scannerDb.clearScanStatus()
 
 tracDb.conn.close()
 scannerDb.conn.close()
