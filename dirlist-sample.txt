@@ -1,0 +1,2 @@
+c:\folderA\folderB
+\\server01\folderC\folderD
