@@ -348,7 +348,7 @@ def registerFile(filepath, tracDb, connScanner, msWordRdr):
             return
         
         pageName = registerScannedFile(connScanner, filepath)
-        logstd("%s regisgered to wiki as %s." % (filepath, pageName))
+        logstd("%s registered to wiki as %s." % (filepath, pageName))
         tracDb.register2TracDb(pageName, pageData, filepath)
 
         connScanner.commit()
