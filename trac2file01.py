@@ -1,18 +1,26 @@
 from sqlalchemy import create_engine, Column, String, BigInteger, Integer
 from sqlalchemy.orm import sessionmaker, declarative_base
-import os
-import datetime
-import traceback
-import sys
+import os, datetime, configparser
 
 # --- グローバル設定 ---
+
+
+# 設定ファイルの読み込み
+config = configparser.ConfigParser()
+config.read('config.ini')
+configDefault = config["DEFAULT"]
+
+
 # PostgreSQLの接続文字列
 #DB_URL = "postgresql://tracuser:tracuser@localhost:5432/trac16"
-DB_URL = "postgresql://tracuser:tracuser@localhost:5432/trac"
+#DB_URL = "postgresql://tracuser:tracuser@localhost:5432/trac"
+DB_URL = configDefault["tracdb_url"]
 
 # 📂 ファイル保存先フォルダ
 #OUTPUT_DIR = "c:\\tmp\\wiki_exports" 
-OUTPUT_DIR = "/tmp/wiki_exports"
+#OUTPUT_DIR = "/tmp/wiki_exports"
+OUTPUT_DIR = configDefault["output_dir"]
+
 
 # --- データベースのセットアップ ---
 # client_encoding='utf8' を指定してしないと日本語データでエラーになる
