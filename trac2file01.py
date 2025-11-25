@@ -103,6 +103,7 @@ def save_wiki_to_file(target_name: str):
 
     if rec_wiki:
         file_content = rec_wiki.text
+        #print(f"file_content={file_content}")
         db_timestamp = tractime_to_timestamp(rec_wiki.time)
         print(f"DBのtime: {datetime.datetime.fromtimestamp(db_timestamp)}")
 
@@ -121,8 +122,11 @@ def save_wiki_to_file(target_name: str):
             print("データベースのデータが新しいため、ファイルを上書きします。")
 
             # 6. ファイルへの書き出し（上書き）
+            #with open(output_filepath, 'w') as f:
             with open(output_filepath, 'w', encoding='utf-8') as f:
                 f.write(file_content)
+            #with open(output_filepath, 'wb') as f:
+            #    f.write(file_content.encode(encoding='utf-8'))
             
             print(f"ファイル {output_filepath} を正常に更新しました。")
             

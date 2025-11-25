@@ -189,6 +189,8 @@ def get_file_contents(filepath):
         try:
             #print encoding
             us = s.decode(encoding)
+            # 改行コードがおかしくなるため、\rは除去
+            us = us.replace('\r', '')
             flg_success = True
             break
         except UnicodeDecodeError:
