@@ -15,6 +15,9 @@ configDefault = config["DEFAULT"]
 #DB_URL = "postgresql://tracuser:tracuser@localhost:5432/trac16"
 #DB_URL = "postgresql://tracuser:tracuser@localhost:5432/trac"
 DB_URL = configDefault["tracdb_url"]
+#SCANNER_DB_PATH = 'C:\\py_virenv\\trac16env\\trac\\mydata02.db'
+SCANNER_DB_URL = 'sqlite:///C:\\py_virenv\\trac16env\\trac\\mydata02.db'
+
 
 # 📂 ファイル保存先フォルダ
 #OUTPUT_DIR = "c:\\tmp\\wiki_exports" 
@@ -27,6 +30,9 @@ OUTPUT_DIR = configDefault["output_dir"]
 engine = create_engine(DB_URL, client_encoding='utf8')
 Base = declarative_base()
 
+engine_scanner = create_engine(SCANNER_DB_URL)
+
+
 # テーブルに対応するWikiクラスを定義
 class Wiki(Base):
     __tablename__ = 'wiki'
@@ -38,9 +44,21 @@ class Wiki(Base):
     def __repr__(self):
         return f"<Wiki(name='{self.name}', time={self.time})>"
 
+
+# テーブルに対応するWikiクラスを定義
+class TScanFile(Base):
+    __tablename__ = 't_scan_file'
+    fpath = Column(String, primary_key=True)
+    last_checked = Column(BigInteger)               
+    wikiPageName = Column(String)
+
+    def __repr__(self):
+        return f"<TScanFile(wikiPageName='{self.wikiPageName}')>"
+
+
 # セッションファクトリの作成
 Session = sessionmaker(bind=engine)
-
+SessionScanner = sessionmaker(bind=engine_scanner)
 
 def get_latest_wiki(session, target_name: str):
     """指定されたnameの最新バージョンのWikiレコードを取得する関数。
@@ -137,6 +155,14 @@ def save_wiki_to_file(target_name: str):
     else:
         print(f"⚠️ '{target_name}' のレコードは見つかりませんでした。")
 
+    session.close()
+
+
+def get_wiki_page_names(sessScan):
+    """
+    mydata02.dbのT_SCAN_FILEのwikiPageNameが"__MapPage"で始まるデータを取得する
+    """
+    return sessScan.query(TScanFile).filter(TScanFile.wikiPageName.like('__MapPage%')).order_by(TScanFile.wikiPageName)
 
 
 if __name__ == "__main__":
@@ -156,4 +182,13 @@ if __name__ == "__main__":
     # 呼び出し例 2
     SECOND_TARGET = 'AnotherWikiPage'
     save_wiki_to_file(SECOND_TARGET)
-   
+    
+    sessScan = SessionScanner()
+
+    results = get_wiki_page_names(sessScan)
+
+    for rec in results:
+        save_wiki_to_file(rec.wikiPageName)
+
+    sessScan.close()
+    
