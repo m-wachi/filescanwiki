@@ -1,0 +1,29 @@
+Table: ticket
+ - columns
+  - id        serial4
+  - type      text
+  - time      int8
+  - changetime int8
+  - component text
+  - severity  text
+  - priority  text
+  - owner     text
+  - reporter  text
+  - cc        text
+  - version   text
+  - milestone text
+  - status    text
+  - resolution text
+  - summary   text
+  - description text
+  - keywords  text
+
+Table ticket_change
+ - columns
+  - ticket    int4
+  - time      int8
+  - author    text
+  - field     text
+  - oldvalue  text
+  - newvalue  text
+
