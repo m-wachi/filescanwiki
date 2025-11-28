@@ -108,7 +108,7 @@ def save_wiki_to_file(target_name: str):
     """
    
     # 2. フルパスのファイル名を生成
-    file_name_only = f"{target_name}.txt"
+    file_name_only = f"{target_name}.md"
     output_filepath = os.path.join(OUTPUT_DIR, file_name_only)
     
     session = Session()
@@ -120,7 +120,9 @@ def save_wiki_to_file(target_name: str):
     rec_wiki = get_latest_wiki(session, target_name)
 
     if rec_wiki:
-        file_content = rec_wiki.text
+        stmp : str = rec_wiki.text
+        file_content = stmp.replace("{{{", "```").replace("}}}", "```")
+
         #print(f"file_content={file_content}")
         db_timestamp = tractime_to_timestamp(rec_wiki.time)
         print(f"DBのtime: {datetime.datetime.fromtimestamp(db_timestamp)}")
