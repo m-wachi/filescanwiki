@@ -25,26 +25,16 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 
 BASE_DIR = Path(__file__).parent
-CONFIG_PATH = BASE_DIR / "config.ini"
 
+cfg = configparser.ConfigParser()
+cfg.read(BASE_DIR / "config.ini")
+cfgDefault = cfg["DEFAULT"]
 
-def load_db_url(config_path: Path = CONFIG_PATH) -> str:
-    """`config.ini` の DEFAULT セクションから `tracdb_url` を読み取る。
-
-    キーが存在しない場合は `KeyError` を送出します。
-    """
-    cfg = configparser.ConfigParser()
-    read_files = cfg.read(config_path)
-    if not read_files:
-        raise FileNotFoundError(f"Config file not found: {config_path}")
-    try:
-        return cfg["DEFAULT"]["tracdb_url"]
-    except KeyError:
-        raise KeyError("'tracdb_url' missing in DEFAULT section of config.ini")
+OUTPUT_DIR = cfgDefault["output_dir"]
+DATABASE_URL = cfgDefault["tracdb_url"]
 
 
 # SQLAlchemy の設定
-DATABASE_URL = load_db_url()
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base = declarative_base()
@@ -52,25 +42,6 @@ Base = declarative_base()
 
 class Ticket(Base):
     """`ticket` テーブルのモデル。
-
-    `doc/database.txt` に基づくカラム割り当て:
-      - id        serial4 -> Integer (主キー)
-      - type      text
-      - time      int8 -> BigInteger
-      - changetime int8 -> BigInteger
-      - component text
-      - severity  text
-      - priority  text
-      - owner     text
-      - reporter  text
-      - cc        text
-      - version   text
-      - milestone text
-      - status    text
-      - resolution text
-      - summary   text
-      - description text
-      - keywords  text
     """
 
     __tablename__ = "ticket"
@@ -143,25 +114,7 @@ def get_session():
     return SessionLocal()
 
 
-def load_output_dir(config_path: Path = CONFIG_PATH) -> Path:
-    """`config.ini` の DEFAULT セクションから `output_dir` を読み取り、Path を返す。
-
-    存在しない場合はディレクトリを作成する。
-    """
-    cfg = configparser.ConfigParser()
-    read_files = cfg.read(config_path)
-    if not read_files:
-        raise FileNotFoundError(f"Config file not found: {config_path}")
-    try:
-        out = cfg["DEFAULT"]["output_dir"]
-    except KeyError:
-        raise KeyError("'output_dir' missing in DEFAULT section of config.ini")
-    out_path = Path(out)
-    out_path.mkdir(parents=True, exist_ok=True)
-    return out_path
-
-
-def export_ticket_to_file(ticket_no, config_path: Path = CONFIG_PATH) -> Path:
+def export_ticket_to_file(ticket_no) -> Path:
     """指定したチケット番号の `ticket` と `ticket_change` をテキストファイルに書き出す。
 
     ファイル名は `ticket_<No>.txt`、保存先は `config.ini` の `output_dir`。
@@ -169,8 +122,7 @@ def export_ticket_to_file(ticket_no, config_path: Path = CONFIG_PATH) -> Path:
 
     戻り値は書き出したファイルのパス (Path)。
     """
-    out_dir = load_output_dir(config_path)
-    filename = out_dir / f"ticket_{ticket_no}.txt"
+    filename = f"{OUTPUT_DIR}/ticket_{ticket_no}.txt"
 
     # DB からデータ取得
     with get_session() as sess:
@@ -219,8 +171,5 @@ if __name__ == "__main__":
     print("Defined tables:", Base.metadata.tables.keys())
 
     for n in (1, 2):
-        try:
-            out_path = export_ticket_to_file(n)
-            print(f"Exported ticket {n} -> {out_path}")
-        except Exception as exc:
-            print(f"Failed to export ticket {n}: {exc}")
+        out_path = export_ticket_to_file(n)
+        print(f"Exported ticket {n} -> {out_path}")
