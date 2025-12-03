@@ -11,7 +11,7 @@ URL を `configparser` で読み取り、SQLAlchemy のエンジンを作成し�
       tickets = sess.query(Ticket).limit(10).all()
 """
 from pathlib import Path
-import configparser
+import configparser, datetime
 
 from sqlalchemy import (
     Column,
@@ -114,6 +114,21 @@ def get_session():
     return SessionLocal()
 
 
+def tractime_to_timestamp(tractime):
+    """Tracのtimeカラムの値をUNIXタイムスタンプに変換する関数。
+
+    Args:
+        tractime (int): Tracのtimeカラムの値（マイクロ秒単位）。
+
+    Returns:
+        int: UNIXタイムスタンプ（秒単位）。
+    """
+    return tractime / 1000000  # マイクロ秒を秒に変換
+
+def tractime_to_datetime(tractime):
+    tmstmp = tractime_to_timestamp(tractime)
+    return datetime.datetime.fromtimestamp(tmstmp)
+
 def export_ticket_to_file(ticket_no) -> Path:
     """指定したチケット番号の `ticket` と `ticket_change` をテキストファイルに書き出す。
 
@@ -142,6 +157,11 @@ def export_ticket_to_file(ticket_no) -> Path:
         f.write(f"Ticket: {ticket_no}\n")
         f.write("=" * 60 + "\n")
         if ticket_obj:
+            vtmp = tractime_to_datetime(ticket_obj.time)
+            f.write(f"登録日時: {vtmp:%Y/%m/%d %H:%M}, ")
+            vtmp = tractime_to_datetime(ticket_obj.changetime)
+            f.write(f"更新日時: {vtmp:%Y/%m/%d %H:%M} \n")
+
             for k, v in ticket_obj.to_dict().items():
                 f.write(f"{k}: {v}\n")
         else:
