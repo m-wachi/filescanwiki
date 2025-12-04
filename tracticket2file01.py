@@ -157,13 +157,18 @@ def export_ticket_to_file(ticket_no) -> Path:
         f.write(f"Ticket: {ticket_no}\n")
         f.write("=" * 60 + "\n")
         if ticket_obj:
+            f.write(f"{ticket_obj.summary}\n")
+            f.write("-" * 60 + "\n")
             vtmp = tractime_to_datetime(ticket_obj.time)
-            f.write(f"登録日時: {vtmp:%Y/%m/%d %H:%M}, ")
+            f.write(f"  登録日時: {vtmp:%Y/%m/%d %H:%M}, ")
             vtmp = tractime_to_datetime(ticket_obj.changetime)
             f.write(f"更新日時: {vtmp:%Y/%m/%d %H:%M} \n")
-
-            for k, v in ticket_obj.to_dict().items():
-                f.write(f"{k}: {v}\n")
+            f.write(f"  Milestone: {ticket_obj.milestone}\n")
+            f.write("\n")
+            f.write(f"詳細:\n{ticket_obj.description}\n")
+            f.write("-" * 60 + "\n")
+            #for k, v in ticket_obj.to_dict().items():
+            #    f.write(f"{k}: {v}\n")
         else:
             f.write("Ticket not found.\n")
 
@@ -190,6 +195,6 @@ if __name__ == "__main__":
     print("Database URL:", DATABASE_URL)
     print("Defined tables:", Base.metadata.tables.keys())
 
-    for n in (1, 2):
+    for n in (1, 2, 1297):
         out_path = export_ticket_to_file(n)
         print(f"Exported ticket {n} -> {out_path}")
