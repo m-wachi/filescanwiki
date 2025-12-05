@@ -148,7 +148,7 @@ def export_ticket_to_file(ticket_no) -> Path:
         changes = (
             sess.query(TicketChange)
             .filter(TicketChange.ticket == int(ticket_no))
-            .order_by(TicketChange.time)
+            .order_by(TicketChange.oldvalue)
             .all()
         )
 
@@ -166,23 +166,39 @@ def export_ticket_to_file(ticket_no) -> Path:
             f.write(f"  Milestone: {ticket_obj.milestone}\n")
             f.write("\n")
             f.write(f"詳細:\n{ticket_obj.description}\n")
-            f.write("-" * 60 + "\n")
+            #f.write("-" * 60 + "\n")
             #for k, v in ticket_obj.to_dict().items():
             #    f.write(f"{k}: {v}\n")
         else:
             f.write("Ticket not found.\n")
 
-        f.write("\nChanges:\n")
         f.write("=" * 60 + "\n")
+        f.write("\nComments:\n")
+        f.write("-" * 60 + "\n")
+        #
+        # ticket_changeテーブルに入っているコメントについて
+        # field = "comment"のデータがコメント
+        #   oldvalue: コメント番号
+        #   newvalue: コメントの内容
+        # field = "_comment?"はコメントの過去データ
+        #   time: 対応する最新のコメント(field=comment)のtimeと同じ値になる
+        #   oldvalue: （古い）コメントの内容
+        #   newvalue: （古い）コメントの更新日時
+        #
         if changes:
             for ch in changes:
+                if ch.field != "comment":
+                    continue
+                vtmp = tractime_to_datetime(ch.time)
+                f.write(f"{ch.oldvalue} -  {vtmp:%Y/%m/%d %H:%M}\n\n")
+                f.write(f"{ch.newvalue}\n")
                 # 単純フォーマット: time, author, field, old -> new
-                f.write(
-                    f"time={ch.time} author={ch.author} field={ch.field} \n"
-                )
-                f.write(f"  old: {ch.oldvalue}\n")
-                f.write(f"  new: {ch.newvalue}\n")
-                f.write("-" * 40 + "\n")
+                # f.write(
+                #     f"time={ch.time} author={ch.author} field={ch.field} \n"
+                # )
+                # f.write(f"  old: {ch.oldvalue}\n")
+                # f.write(f"  new: {ch.newvalue}\n")
+                f.write("-" * 60 + "\n")
         else:
             f.write("No changes found.\n")
 
