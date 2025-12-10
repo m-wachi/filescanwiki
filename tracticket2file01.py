@@ -22,7 +22,7 @@ from sqlalchemy import (
     PrimaryKeyConstraint,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
-
+from sqlalchemy.sql import func
 
 BASE_DIR = Path(__file__).parent
 
@@ -129,6 +129,16 @@ def tractime_to_datetime(tractime):
     tmstmp = tractime_to_timestamp(tractime)
     return datetime.datetime.fromtimestamp(tmstmp)
 
+def get_ticket_max_id():
+    """
+    チケット番号の最大値を取得する
+    """
+    id_max = 0
+    with get_session() as sess:
+        rec = sess.query(func.max(Ticket.id).label('id_max')).one_or_none()
+        id_max = rec.id_max
+    return id_max
+
 def export_ticket_to_file(ticket_no) -> Path:
     """指定したチケット番号の `ticket` と `ticket_change` をテキストファイルに書き出す。
 
@@ -211,6 +221,10 @@ if __name__ == "__main__":
     print("Database URL:", DATABASE_URL)
     print("Defined tables:", Base.metadata.tables.keys())
 
+    id_max = get_ticket_max_id()
+    print(f"ticket max id={id_max}\n")
+
     for n in (1, 2, 1297):
         out_path = export_ticket_to_file(n)
         print(f"Exported ticket {n} -> {out_path}")
+
