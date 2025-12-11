@@ -224,7 +224,7 @@ if __name__ == "__main__":
     id_max = get_ticket_max_id()
     print(f"ticket max id={id_max}\n")
 
-    for n in (1, 2, 1297):
+    for n in range(1, id_max):
         out_path = export_ticket_to_file(n)
         print(f"Exported ticket {n} -> {out_path}")
 
