@@ -108,8 +108,8 @@ def save_wiki_to_file(target_name: str):
     """
    
     # 2. フルパスのファイル名を生成
-    file_name_only = f"{target_name}.md"
-    output_filepath = os.path.join(OUTPUT_DIR, file_name_only)
+    file_name_only = f"{target_name}.txt"
+    output_filepath = os.path.join(OUTPUT_DIR, "wiki", file_name_only)
     
     session = Session()
     

@@ -187,7 +187,7 @@ def export_ticket_to_file(ticket_no) -> str:
     戻り値は書き出したファイルのパス (Path)。ファイルを書き出さなかった場合はNone
     """
 
-    filename = f"{OUTPUT_DIR}/ticket_{ticket_no}.txt"
+    filename = f"{OUTPUT_DIR}/tickets/ticket_{ticket_no}.txt"
 
     # DB からデータ取得
     with get_session() as sess:
